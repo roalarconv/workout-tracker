@@ -186,6 +186,7 @@ Add an AI-generated summary when completing a week (or workout) that uses your p
       <button class="unit-btn active" id="unit-lbs" onclick="setUnit('lbs')">lbs</button>
       <button class="unit-btn" id="unit-kg" onclick="setUnit('kg')">kg</button>
     </div>
+    <button class="back-btn" id="home-history-btn" onclick="showScreen('screen-history')" style="margin-left:8px;font-size:20px;display:none">📈</button>
     <button class="back-btn" onclick="showScreen('screen-settings')" style="margin-left:8px;font-size:20px">⚙️</button>
   </div>
   <div class="content">
@@ -333,6 +334,15 @@ Add an AI-generated summary when completing a week (or workout) that uses your p
       <button class="btn btn-danger" onclick="resetApp()">Reset all data</button>
     </div>
   </div>
+</div>
+
+<!-- HISTORY -->
+<div id="screen-history" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="showScreen('screen-home')">← Back</button>
+    <h1>TM History</h1>
+  </div>
+  <div class="content" id="history-content"></div>
 </div>
 
 <!-- NEW WEEK -->
@@ -663,6 +673,7 @@ let state = {
   completedDays: {},  // { 'w1': { 'd1': true, ... } }
   workoutLogs: {},    // { 'w1': { 'd1': { 't1-0': { done, reps }, ... } } }
   amrapLogs: {},      // { 'w1': { 'bench': 5, ... } }
+  tmHistory: {},      // { bench: [{ week:1, tm:200 }, ...], ... }
   plates: {
     lbs: { '55':false, '35': false, '2.5': true },
     kg:  { '25': false, '15': false, '2.5': true, '1.25': false }
@@ -685,6 +696,7 @@ function loadState() {
         };
       }
       if (state.darkMode === undefined) state.darkMode = false;
+      if (!state.tmHistory) state.tmHistory = {};
     } catch(e) {}
   }
 }
@@ -791,6 +803,21 @@ function suggestNextTM(lift, currentTM, reps) {
   return currentTM + (isLower ? bigInc * 1.5 : bigInc);
 }
 
+function recordTMHistory() {
+  if (!state.tmHistory) state.tmHistory = {};
+  const now = new Date().toISOString();
+  TM_LIFTS.forEach(lift => {
+    if (!state.tmHistory[lift]) state.tmHistory[lift] = [];
+    const existing = state.tmHistory[lift].find(e => e.week === state.week);
+    if (existing) {
+      existing.tm = state.tms[lift];
+      existing.date = now;
+    } else {
+      state.tmHistory[lift].push({ week: state.week, tm: state.tms[lift], date: now });
+    }
+  });
+}
+
 // ─── SCREEN ROUTING ───────────────────────────────────────────────────────────
 
 function showScreen(id) {
@@ -801,6 +828,7 @@ function showScreen(id) {
   if (id === 'screen-settings') renderSettings();
   if (id === 'screen-new-week') renderNewWeek();
   if (id === 'screen-setup-tm') renderSetupTM();
+  if (id === 'screen-history')  renderHistory();
 }
 
 function setUnit(u) {
@@ -816,6 +844,7 @@ function renderHome() {
   const hasProgram = !!state.program;
   document.getElementById('home-no-program').style.display = hasProgram ? 'none'  : 'block';
   document.getElementById('home-program').style.display    = hasProgram ? 'block' : 'none';
+  document.getElementById('home-history-btn').style.display = hasProgram ? 'inline-flex' : 'none';
   if (!hasProgram) return;
 
   const prog = PROGRAMS[state.program];
@@ -886,6 +915,7 @@ function saveTMs() {
     const val = parseFloat(document.getElementById(`tminput-${lift}`).value);
     if (!isNaN(val) && val > 0) state.tms[lift] = val;
   });
+  recordTMHistory();
   saveState();
   showScreen('screen-home');
 }
@@ -1100,6 +1130,7 @@ function confirmNewWeek() {
   state.completedDays[wk] = {};
   state.workoutLogs[wk]   = {};
   state.amrapLogs[wk]     = {};
+  recordTMHistory();
   saveState();
   showScreen('screen-home');
 }
@@ -1164,6 +1195,102 @@ function resetApp() {
     applyTheme();
     showScreen('screen-home');
   }
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────────────────────
+
+function fmtDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return `${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(-2)}`;
+}
+
+function showGraphTip(lift, week, dateStr, tm) {
+  const el = document.getElementById(`graph-tip-${lift}`);
+  if (el) el.textContent = `Week ${week}  ·  ${fmt(tm)} ${state.unit}  ·  ${dateStr}`;
+}
+
+function hideGraphTip(lift) {
+  const el = document.getElementById(`graph-tip-${lift}`);
+  if (el) el.textContent = '';
+}
+
+function buildTMGraph(data, lift) {
+  if (data.length === 0) {
+    return `<div style="text-align:center;padding:16px 0;font-size:13px;color:var(--text-tertiary)">No history recorded yet</div>`;
+  }
+
+  const W = 300, H = 72;
+  const PL = 6, PR = 6, PT = 16, PB = 18;
+  const plotW = W - PL - PR;
+  const plotH = H - PT - PB;
+  const n = data.length;
+
+  const tms   = data.map(d => d.tm);
+  const minTM = Math.min(...tms);
+  const maxTM = Math.max(...tms);
+  const range = maxTM - minTM || 1;
+
+  const xp = i  => PL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const yp = tm => PT + plotH - ((tm - minTM) / range) * plotH;
+
+  const pts = data.map((d, i) => `${xp(i).toFixed(1)},${yp(d.tm).toFixed(1)}`).join(' ');
+  const bottomY = (PT + plotH).toFixed(1);
+  const fillPts = pts + ` ${xp(n-1).toFixed(1)},${bottomY} ${xp(0).toFixed(1)},${bottomY}`;
+
+  const line = n > 1
+    ? `<polygon points="${fillPts}" fill="var(--accent)" opacity="0.10"/>
+       <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
+    : '';
+
+  const valueLabels = data.map((d, i) => {
+    if (i !== 0 && i !== n - 1 && n > 6) return '';
+    const anchor = i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle';
+    return `<text x="${xp(i).toFixed(1)}" y="${(yp(d.tm) - 5).toFixed(1)}" text-anchor="${anchor}" font-size="8" fill="var(--text-secondary)">${fmt(d.tm)}</text>`;
+  }).join('');
+
+  const weekLabels = data.map((d, i) => {
+    if (n > 8 && i % 2 !== 0) return '';
+    return `<text x="${xp(i).toFixed(1)}" y="${H - 2}" text-anchor="middle" font-size="8" fill="var(--text-tertiary)">W${d.week}</text>`;
+  }).join('');
+
+  // Visible dots + invisible large hit areas for hover/touch
+  const dots = data.map((d, i) => {
+    const cx = xp(i).toFixed(1), cy = yp(d.tm).toFixed(1);
+    const dateStr = fmtDate(d.date);
+    const handlers = `onmouseover="showGraphTip('${lift}',${d.week},'${dateStr}',${d.tm})" onmouseout="hideGraphTip('${lift}')" ontouchstart="showGraphTip('${lift}',${d.week},'${dateStr}',${d.tm});event.preventDefault();"`;
+    return `<circle cx="${cx}" cy="${cy}" r="3.5" fill="var(--accent)" pointer-events="none"/>
+            <circle cx="${cx}" cy="${cy}" r="12" fill="transparent" style="cursor:pointer" ${handlers}/>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;margin:8px 0">
+    ${line}${valueLabels}${weekLabels}${dots}
+  </svg>
+  <div id="graph-tip-${lift}" style="text-align:center;font-size:12px;color:var(--text-secondary);min-height:18px;margin-bottom:4px"></div>`;
+}
+
+function renderHistory() {
+  const history = state.tmHistory || {};
+
+  const html = TM_LIFTS.map(lift => {
+    const data = (history[lift] || []).slice().sort((a, b) => a.week - b.week);
+    const current = state.tms[lift];
+    const first   = data[0];
+    const totalGain = first ? current - first.tm : 0;
+    const gainStr = totalGain === 0 ? '' : (totalGain > 0 ? `+${fmt(totalGain)}` : `${fmt(totalGain)}`);
+
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
+        <div class="card-title" style="margin-bottom:0">${LIFT_NAMES[lift]}</div>
+        ${gainStr ? `<div style="font-size:13px;color:${totalGain > 0 ? 'var(--green-text)' : '#ff3b30'};font-weight:600">${gainStr} ${state.unit}</div>` : ''}
+      </div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px">Current TM: ${fmt(current)} ${state.unit}</div>
+      ${buildTMGraph(data, lift)}
+    </div>`;
+  }).join('');
+
+  document.getElementById('history-content').innerHTML = html ||
+    `<div class="empty">No history yet. Complete your first week setup to start tracking.</div>`;
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
