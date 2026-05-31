@@ -244,9 +244,17 @@ Add an AI-generated summary when completing a week (or workout) that uses your p
       <div class="card-title">4 Day LP — Short</div>
       <div class="card-sub">Fewer back-off sets per lift · Shorter sessions</div>
     </div>
-    <div class="card" style="cursor:pointer" onclick="selectProgram('5day-short')">
+    <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="selectProgram('5day-short')">
       <div class="card-title">5 Day LP — Short</div>
       <div class="card-sub">Fewer back-off sets per lift · Shorter sessions</div>
+    </div>
+    <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="selectProgram('6day-squat-short')">
+      <div class="card-title">6 Day Squat — Short</div>
+      <div class="card-sub">5 Day Short + shorter squat volume day</div>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="selectProgram('6day-deadlift-short')">
+      <div class="card-title">6 Day Deadlift — Short</div>
+      <div class="card-sub">5 Day Short + shorter deadlift volume day</div>
     </div>
   </div>
 </div>
@@ -414,6 +422,30 @@ const PROGRAMS = {
       { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'C', t2:'incline'    },
       { id:'d4', name:'Day 4', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'D', t2:'sumo'       },
       { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'E', t2:'cgbp'       },
+      { id:'d6', name:'Day 6', label:'Deadlift Volume Day',    t1:'deadlift', t1scheme:'VOL_S', t2:'frontsquat', volumeDay:true },
+    ]
+  },
+  '6day-squat-short': {
+    name: '6 Day Squat — Short',
+    short: true,
+    days: [
+      { id:'d1', name:'Day 1', label:'Bench / OHP',            t1:'bench',    t1scheme:'AS', t2:'ohp'        },
+      { id:'d2', name:'Day 2', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'BS', t2:'sumo'       },
+      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'CS', t2:'incline'    },
+      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat', t1:'deadlift', t1scheme:'DS', t2:'frontsquat' },
+      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'ES', t2:'cgbp'       },
+      { id:'d6', name:'Day 6', label:'Squat Volume Day',        t1:'squat',   t1scheme:'VOL_S', t2:'sumo', volumeDay:true },
+    ]
+  },
+  '6day-deadlift-short': {
+    name: '6 Day Deadlift — Short',
+    short: true,
+    days: [
+      { id:'d1', name:'Day 1', label:'Bench / OHP',            t1:'bench',    t1scheme:'AS', t2:'ohp'        },
+      { id:'d2', name:'Day 2', label:'Deadlift / Front Squat', t1:'deadlift', t1scheme:'DS', t2:'frontsquat' },
+      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'CS', t2:'incline'    },
+      { id:'d4', name:'Day 4', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'BS', t2:'sumo'       },
+      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'ES', t2:'cgbp'       },
       { id:'d6', name:'Day 6', label:'Deadlift Volume Day',    t1:'deadlift', t1scheme:'VOL_S', t2:'frontsquat', volumeDay:true },
     ]
   }
