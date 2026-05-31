@@ -222,7 +222,7 @@ Add an AI-generated summary when completing a week (or workout) that uses your p
     <h1>Choose Program</h1>
   </div>
   <div class="content">
-    <div class="section-title">Select variant</div>
+    <div class="section-title">Standard</div>
     <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="selectProgram('4day')">
       <div class="card-title">4 Day LP</div>
       <div class="card-sub">Bench, Squat, Bench, Deadlift · Good starting point</div>
@@ -235,9 +235,18 @@ Add an AI-generated summary when completing a week (or workout) that uses your p
       <div class="card-title">6 Day Squat</div>
       <div class="card-sub">5 Day + extra squat volume day</div>
     </div>
-    <div class="card" style="cursor:pointer" onclick="selectProgram('6day-deadlift')">
+    <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="selectProgram('6day-deadlift')">
       <div class="card-title">6 Day Deadlift</div>
       <div class="card-sub">5 Day + extra deadlift volume day</div>
+    </div>
+    <div class="section-title">Short versions</div>
+    <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="selectProgram('4day-short')">
+      <div class="card-title">4 Day LP — Short</div>
+      <div class="card-sub">Fewer back-off sets per lift · Shorter sessions</div>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="selectProgram('5day-short')">
+      <div class="card-title">5 Day LP — Short</div>
+      <div class="card-sub">Fewer back-off sets per lift · Shorter sessions</div>
     </div>
   </div>
 </div>
@@ -357,6 +366,7 @@ const PROGRAMS = {
   },
   '4day-short': {
     name: '4 Day LP - Short',
+    short: true,
     days: [
       { id:'d1', name:'Day 1', label:'Bench / OHP',           t1:'bench',    t1scheme:'AS', t2:'ohp'        },
       { id:'d2', name:'Day 2', label:'Squat / Sumo DL',       t1:'squat',    t1scheme:'BS', t2:'sumo'       },
@@ -376,6 +386,7 @@ const PROGRAMS = {
   },
   '5day-short': {
     name: '5 Day LP - Short',
+    short: true,
     days: [
       { id:'d1', name:'Day 1', label:'Bench / OHP',            t1:'bench',    t1scheme:'AS', t2:'ohp'        },
       { id:'d2', name:'Day 2', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'BS', t2:'sumo'       },
@@ -508,7 +519,7 @@ const SCHEME_D = [
 ];
 
 // T1 Scheme D — DL Short variant
-const SCHEME_D_Short = [
+const SCHEME_D_SHORT = [
   {pct:0.75,reps:5, amrap:false},
   {pct:0.85,reps:3, amrap:false},
   {pct:0.95,reps:1, amrap:true},
@@ -727,12 +738,13 @@ function getScheme(code) {
   if (code === 'E')   return SCHEME_E;
   if (code === 'ES')   return SCHEME_E_SHORT;
   if (code === 'VOL')   return SCHEME_VOL;
-  return SCHEME_VOL_SHORT;
+  if (code === 'VOL_S') return SCHEME_VOL_SHORT;
+  return SCHEME_B; // fallback
 }
 
 function getTM(liftKey) {
   if (TM_LIFTS.includes(liftKey)) return state.tms[liftKey];
-  const cfg = T2_CONFIG[liftKey];
+  const cfg = T2_CONFIG[liftKey] || T2_CONFIG_SHORT[liftKey];
   if (cfg) return state.tms[cfg.parent] || 200;
   return 200;
 }
@@ -933,7 +945,8 @@ function renderWorkout(day) {
   html += `</div></div>`;
 
   // ── T2 ──
-  const t2Cfg = isVol ? T2_VOL[day.t2] : T2_CONFIG[day.t2];
+  const isShort = !!(PROGRAMS[state.program] && PROGRAMS[state.program].short);
+  const t2Cfg = isVol ? T2_VOL[day.t2] : (isShort ? T2_CONFIG_SHORT[day.t2] : T2_CONFIG[day.t2]);
   if (t2Cfg) {
     const t2TM = state.tms[t2Cfg.parent] || 200;
     html += `<div class="lift-section">
@@ -1112,7 +1125,7 @@ function resetApp() {
       tms: { bench: 200, squat: 250, deadlift: 300, ohp: 130 },
       completedDays: {}, workoutLogs: {}, amrapLogs: {},
       plates: {
-        lbs: { '35': false, '2.5': true },
+        lbs: { '55': false, '35': false, '2.5': true },
         kg:  { '25': false, '15': false, '2.5': true, '1.25': false }
       }
     };
