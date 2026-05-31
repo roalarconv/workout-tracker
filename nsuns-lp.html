@@ -1,3 +1,27 @@
+<!-- 
+ TODO: 
+ Complete addition of short versions of workouts
+ Add exercise level history to track hitorical TMs
+
+ Add an automatic timer that counts your rest time automatically for each set.
+
+ Add a way to at minimum list accesory work in a text-based field. 
+  - Potentially add as an alternate a drop-down list with write-in reps
+
+Add an AI-generated summary when completing a week (or workout) that uses your past history to rate how your workout is doing.
+ - Can look at :
+   -Calculated TM for this week vs history (overall progression)
+   -Rest times between sets (if rest times are getting too long vs average, suggest lowering TM)
+   -Skipped/shortened exercises
+   -Calendar days worked out. Eg A week split across 7 real days vs 20 real days
+
+
+
+
+
+-->
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,70 +29,151 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>nSuns LP</title>
 <style>
+  :root {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --border: #e5e5ea;
+    --text: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --text-tertiary: #8e8e93;
+    --accent: #007aff;
+    --accent-light: #dbeafe;
+    --accent-text: #1e40af;
+    --amrap-bg: #fff8e1;
+    --amrap-done-bg: #d1fae5;
+    --amrap-text: #92400e;
+    --green: #34c759;
+    --green-bg: #d1fae5;
+    --green-text: #065f46;
+    --green-card: #f0fff4;
+    --green-border: #9ae6b4;
+    --blue-card: #f0f8ff;
+    --blue-border: #bee3f8;
+    --blue-info-text: #1a56a6;
+    --chip-bg: #e1f0ff;
+    --chip-text: #1a56a6;
+    --orange-bg: #fef3c7;
+    --orange-text: #92400e;
+    --row-active: #f5f5f7;
+    --day-done-bg: #f0fff4;
+    --day-done-border: #34c759;
+    --progress-bg: #e5e5ea;
+    --btn-gray-bg: #e5e5ea;
+    --btn-gray-text: #1d1d1f;
+    --input-bg: #ffffff;
+    --sep: #f0f0f0;
+    --plate-text: #8e8e93;
+  }
+  [data-theme="dark"] {
+    --bg: #1c1c1e;
+    --surface: #2c2c2e;
+    --border: #3a3a3c;
+    --text: #f2f2f7;
+    --text-secondary: rgba(235,235,245,0.6);
+    --text-tertiary: rgba(235,235,245,0.3);
+    --accent: #0a84ff;
+    --accent-light: #1a2a4a;
+    --accent-text: #0a84ff;
+    --amrap-bg: #3a2e00;
+    --amrap-done-bg: #0a2a1a;
+    --amrap-text: #ff9f0a;
+    --green: #30d158;
+    --green-bg: #1a3a28;
+    --green-text: #30d158;
+    --green-card: #0a2a1a;
+    --green-border: #1a5a30;
+    --blue-card: #0a1a2a;
+    --blue-border: #1a3a5a;
+    --blue-info-text: #0a84ff;
+    --chip-bg: #1a2a4a;
+    --chip-text: #0a84ff;
+    --orange-bg: #3a2a00;
+    --orange-text: #ff9f0a;
+    --row-active: #1c1c1e;
+    --day-done-bg: #0a2a1a;
+    --day-done-border: #30d158;
+    --progress-bg: #3a3a3c;
+    --btn-gray-bg: #3a3a3c;
+    --btn-gray-text: #f2f2f7;
+    --input-bg: #3a3a3c;
+    --sep: #3a3a3c;
+    --plate-text: rgba(235,235,245,0.3);
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; min-height: 100vh; max-width: 480px; margin: 0 auto; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; transition: background 0.2s, color 0.2s; }
   .screen { display: none; min-height: 100vh; flex-direction: column; }
   .screen.active { display: flex; }
-  .header { background: #fff; border-bottom: 1px solid #e5e5ea; padding: 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
-  .header h1 { font-size: 18px; font-weight: 600; flex: 1; }
-  .back-btn { background: none; border: none; font-size: 15px; color: #007aff; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
+  .header h1 { font-size: 18px; font-weight: 600; flex: 1; color: var(--text); }
+  .back-btn { background: none; border: none; font-size: 15px; color: var(--accent); cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; }
   .content { flex: 1; padding: 16px; overflow-y: auto; }
   .btn { display: block; width: 100%; padding: 14px 16px; border-radius: 12px; font-size: 16px; font-weight: 500; cursor: pointer; border: none; text-align: center; transition: opacity 0.15s; }
   .btn:active { opacity: 0.7; }
-  .btn-primary { background: #007aff; color: #fff; }
-  .btn-secondary { background: #fff; color: #007aff; border: 1px solid #007aff; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--surface); color: var(--accent); border: 1px solid var(--accent); }
   .btn-danger { background: #ff3b30; color: #fff; }
-  .btn-gray { background: #e5e5ea; color: #1d1d1f; }
-  .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid #e5e5ea; }
-  .card-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
-  .card-sub { font-size: 13px; color: #6e6e73; }
-  .section-title { font-size: 13px; font-weight: 600; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
-  .day-btn { background: #fff; border: 1px solid #e5e5ea; border-radius: 12px; padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.1s; }
-  .day-btn:active { background: #f5f5f7; }
-  .day-btn.completed { border-color: #34c759; background: #f0fff4; }
+  .btn-gray { background: var(--btn-gray-bg); color: var(--btn-gray-text); }
+  .card { background: var(--surface); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+  .card-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+  .card-sub { font-size: 13px; color: var(--text-secondary); }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+  .day-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.1s; }
+  .day-btn:active { background: var(--row-active); }
+  .day-btn.completed { border-color: var(--day-done-border); background: var(--day-done-bg); }
   .day-btn-left { text-align: left; }
-  .day-btn-name { font-size: 16px; font-weight: 600; }
-  .day-btn-sub { font-size: 13px; color: #6e6e73; margin-top: 2px; }
+  .day-btn-name { font-size: 16px; font-weight: 600; color: var(--text); }
+  .day-btn-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
   .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-  .badge-green { background: #d1fae5; color: #065f46; }
-  .badge-blue { background: #dbeafe; color: #1e40af; }
-  .badge-orange { background: #fef3c7; color: #92400e; }
-  .set-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; gap: 8px; }
+  .badge-green { background: var(--green-bg); color: var(--green-text); }
+  .badge-blue { background: var(--accent-light); color: var(--accent-text); }
+  .badge-orange { background: var(--orange-bg); color: var(--orange-text); }
+  .set-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--sep); gap: 8px; }
   .set-row:last-child { border-bottom: none; }
-  .set-num { font-size: 12px; color: #8e8e93; width: 22px; flex-shrink: 0; }
-  .set-pct { font-size: 13px; color: #6e6e73; width: 38px; flex-shrink: 0; }
-  .set-weight { font-size: 16px; font-weight: 600; flex: 1; }
-  .set-reps { font-size: 14px; color: #6e6e73; width: 36px; text-align: right; flex-shrink: 0; }
+  .set-num { font-size: 12px; color: var(--text-tertiary); width: 22px; flex-shrink: 0; }
+  .set-pct { font-size: 13px; color: var(--text-secondary); width: 38px; flex-shrink: 0; }
+  .set-weight { font-size: 16px; font-weight: 600; flex: 1; color: var(--text); }
+  .plate-math { font-size: 11px; color: var(--plate-text); font-weight: 400; display: block; margin-top: 1px; }
+  .set-reps { font-size: 14px; color: var(--text-secondary); width: 36px; text-align: right; flex-shrink: 0; }
   .set-check { width: 30px; flex-shrink: 0; text-align: right; }
-  .checkbox { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #c7c7cc; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; }
-  .checkbox.done { background: #34c759; border-color: #34c759; color: #fff; }
-  .amrap-row { background: #fff8e1; border-radius: 8px; padding: 10px 12px; margin: 4px 0; }
-  .amrap-input { width: 52px; border: 1px solid #e5e5ea; border-radius: 8px; padding: 6px 8px; font-size: 14px; text-align: center; background: #fff; }
+  .checkbox { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; }
+  .checkbox.done { background: var(--green); border-color: var(--green); color: #fff; }
+  .amrap-row { background: var(--amrap-bg); border-radius: 8px; padding: 10px 12px; margin: 4px 0; }
+  .amrap-input { width: 52px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 14px; text-align: center; background: var(--input-bg); color: var(--text); }
+  .rep-stepper { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .step-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--accent); font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step-btn:active { opacity: 0.6; }
+  .step-val { min-width: 28px; text-align: center; font-size: 15px; font-weight: 700; color: var(--text); }
+  .step-val-default { min-width: 28px; text-align: center; font-size: 15px; font-weight: 700; color: var(--text-secondary); }
   .lift-section { margin-bottom: 20px; }
-  .lift-title { font-size: 15px; font-weight: 700; padding: 10px 0 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .tm-label { font-size: 12px; color: #6e6e73; font-weight: 400; }
-  select { border: 1px solid #e5e5ea; border-radius: 8px; padding: 10px 12px; font-size: 15px; background: #fff; width: 100%; appearance: none; }
-  .unit-toggle { display: flex; gap: 0; border: 1px solid #007aff; border-radius: 8px; overflow: hidden; }
-  .unit-btn { padding: 6px 14px; font-size: 14px; cursor: pointer; border: none; background: #fff; color: #007aff; font-weight: 500; }
-  .unit-btn.active { background: #007aff; color: #fff; }
+  .lift-title { font-size: 15px; font-weight: 700; padding: 10px 0 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--text); }
+  .tm-label { font-size: 12px; color: var(--text-secondary); font-weight: 400; }
+  select { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 15px; background: var(--input-bg); color: var(--text); width: 100%; appearance: none; }
+  .unit-toggle { display: flex; gap: 0; border: 1px solid var(--accent); border-radius: 8px; overflow: hidden; }
+  .unit-btn { padding: 6px 14px; font-size: 14px; cursor: pointer; border: none; background: var(--surface); color: var(--accent); font-weight: 500; }
+  .unit-btn.active { background: var(--accent); color: #fff; }
   .input-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .input-row label { font-size: 14px; font-weight: 500; flex: 1; }
-  .tm-input { width: 90px; border: 1px solid #e5e5ea; border-radius: 8px; padding: 8px 10px; font-size: 16px; text-align: center; background: #fff; }
-  .suggestion { font-size: 12px; color: #007aff; margin-top: 2px; }
-  .prog-table { width: 100%; font-size: 13px; }
+  .input-row label { font-size: 14px; font-weight: 500; flex: 1; color: var(--text); }
+  .tm-input { width: 90px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 16px; text-align: center; background: var(--input-bg); color: var(--text); }
+  .suggestion { font-size: 12px; color: var(--accent); margin-top: 2px; }
+  .prog-table { width: 100%; font-size: 13px; color: var(--text); }
   .prog-table td { padding: 5px 8px; }
-  .prog-table td:first-child { color: #6e6e73; }
+  .prog-table td:first-child { color: var(--text-secondary); }
   .week-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .week-label { font-size: 22px; font-weight: 700; }
-  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+  .week-label { font-size: 22px; font-weight: 700; color: var(--text); }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--sep); }
   .settings-row:last-child { border-bottom: none; }
-  .settings-label { font-size: 15px; font-weight: 500; }
-  .settings-sub { font-size: 13px; color: #6e6e73; margin-top: 2px; }
-  .progress-bar { height: 4px; background: #e5e5ea; border-radius: 2px; margin-top: 8px; }
-  .progress-fill { height: 100%; background: #007aff; border-radius: 2px; transition: width 0.3s; }
-  .chevron { font-size: 18px; color: #c7c7cc; }
-  .empty { text-align: center; padding: 40px 20px; color: #8e8e93; font-size: 15px; }
-  .variant-chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: #e1f0ff; color: #1a56a6; display: inline-block; }
+  .settings-label { font-size: 15px; font-weight: 500; color: var(--text); }
+  .settings-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+  .progress-bar { height: 4px; background: var(--progress-bg); border-radius: 2px; margin-top: 8px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .chevron { font-size: 18px; color: var(--text-tertiary); }
+  .empty { text-align: center; padding: 40px 20px; color: var(--text-tertiary); font-size: 15px; }
+  .variant-chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: var(--chip-bg); color: var(--chip-text); display: inline-block; }
+  .plate-toggle { padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .plate-toggle.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .dark-toggle { width: 51px; height: 31px; border-radius: 16px; border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .dark-toggle .knob { position: absolute; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: left 0.2s; }
 </style>
 </head>
 <body>
@@ -87,7 +192,7 @@
     <div id="home-no-program" style="display:none">
       <div class="empty">
         <div style="font-size:48px;margin-bottom:16px">🏋️</div>
-        <div style="font-size:18px;font-weight:600;color:#1d1d1f;margin-bottom:8px">Welcome to nSuns LP</div>
+        <div style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:8px">Welcome to nSuns LP</div>
         <div style="margin-bottom:24px">Choose a program variant to get started</div>
         <button class="btn btn-primary" onclick="showScreen('screen-choose-program')">Choose Program</button>
       </div>
@@ -143,8 +248,8 @@
     <h1 id="setup-title">Setup Training Maxes</h1>
   </div>
   <div class="content">
-    <div class="card" style="margin-bottom:16px;background:#f0f8ff;border-color:#bee3f8">
-      <div style="font-size:13px;color:#1a56a6">Enter your Training Max (TM) for each lift. TM = 90% of your true 1RM. All set weights are calculated from these numbers.</div>
+    <div class="card" style="margin-bottom:16px;background:var(--blue-card);border-color:var(--blue-border)">
+      <div style="font-size:13px;color:var(--blue-info-text)">Enter your Training Max (TM) for each lift. TM = 90% of your true 1RM. All set weights are calculated from these numbers.</div>
     </div>
     <div id="tm-inputs"></div>
     <button class="btn btn-primary" onclick="saveTMs()" style="margin-top:8px">Start Training</button>
@@ -168,6 +273,12 @@
   </div>
   <div class="content">
     <div class="card">
+      <div class="settings-row">
+        <div><div class="settings-label">Dark mode</div></div>
+        <button class="dark-toggle" id="dark-toggle-btn" onclick="toggleDarkMode()">
+          <div class="knob" id="dark-knob"></div>
+        </button>
+      </div>
       <div class="settings-row">
         <div><div class="settings-label">Weight unit</div></div>
         <div class="unit-toggle">
@@ -197,6 +308,10 @@
         <span class="chevron">›</span>
       </div>
     </div>
+
+    <div class="section-title" id="plates-section-title">Available plates</div>
+    <div class="card" id="plates-card"></div>
+
     <div style="margin-top:8px">
       <button class="btn btn-danger" onclick="resetApp()">Reset all data</button>
     </div>
@@ -210,8 +325,8 @@
     <h1>New Week</h1>
   </div>
   <div class="content">
-    <div class="card" style="margin-bottom:16px;background:#f0fff4;border-color:#9ae6b4">
-      <div style="font-size:13px;color:#276749">Set your new Training Maxes. Suggestions are based on your AMRAP results from this week. You can override any value.</div>
+    <div class="card" style="margin-bottom:16px;background:var(--green-card);border-color:var(--green-border)">
+      <div style="font-size:13px;color:var(--green-text)">Set your new Training Maxes. Suggestions are based on your AMRAP results from this week. You can override any value.</div>
     </div>
     <div id="new-week-inputs"></div>
     <div class="section-title">Progression guide</div>
@@ -236,8 +351,17 @@ const PROGRAMS = {
     days: [
       { id:'d1', name:'Day 1', label:'Bench / OHP',           t1:'bench',    t1scheme:'A', t2:'ohp'        },
       { id:'d2', name:'Day 2', label:'Squat / Sumo DL',       t1:'squat',    t1scheme:'B', t2:'sumo'       },
-      { id:'d3', name:'Day 3', label:'Bench / CGBP',          t1:'bench',    t1scheme:'B', t2:'cgbp'       },
-      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat',t1:'deadlift', t1scheme:'B', t2:'frontsquat' },
+      { id:'d3', name:'Day 3', label:'Bench / CGBP',          t1:'bench',    t1scheme:'E', t2:'cgbp'       },
+      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat',t1:'deadlift', t1scheme:'D', t2:'frontsquat' },
+    ]
+  },
+  '4day-short': {
+    name: '4 Day LP - Short',
+    days: [
+      { id:'d1', name:'Day 1', label:'Bench / OHP',           t1:'bench',    t1scheme:'AS', t2:'ohp'        },
+      { id:'d2', name:'Day 2', label:'Squat / Sumo DL',       t1:'squat',    t1scheme:'BS', t2:'sumo'       },
+      { id:'d3', name:'Day 3', label:'Bench / CGBP',          t1:'bench',    t1scheme:'ES', t2:'cgbp'       },
+      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat',t1:'deadlift', t1scheme:'DS', t2:'frontsquat' },
     ]
   },
   '5day': {
@@ -245,9 +369,19 @@ const PROGRAMS = {
     days: [
       { id:'d1', name:'Day 1', label:'Bench / OHP',            t1:'bench',    t1scheme:'A', t2:'ohp'        },
       { id:'d2', name:'Day 2', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'B', t2:'sumo'       },
-      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'B', t2:'incline'    },
-      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat', t1:'deadlift', t1scheme:'B', t2:'frontsquat' },
-      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'B', t2:'cgbp'       },
+      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'C', t2:'incline'    },
+      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat', t1:'deadlift', t1scheme:'D', t2:'frontsquat' },
+      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'E', t2:'cgbp'       },
+    ]
+  },
+  '5day-short': {
+    name: '5 Day LP - Short',
+    days: [
+      { id:'d1', name:'Day 1', label:'Bench / OHP',            t1:'bench',    t1scheme:'AS', t2:'ohp'        },
+      { id:'d2', name:'Day 2', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'BS', t2:'sumo'       },
+      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'CS', t2:'incline'    },
+      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat', t1:'deadlift', t1scheme:'DS', t2:'frontsquat' },
+      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'ES', t2:'cgbp'       },
     ]
   },
   '6day-squat': {
@@ -255,10 +389,10 @@ const PROGRAMS = {
     days: [
       { id:'d1', name:'Day 1', label:'Bench / OHP',            t1:'bench',    t1scheme:'A', t2:'ohp'        },
       { id:'d2', name:'Day 2', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'B', t2:'sumo'       },
-      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'B', t2:'incline'    },
-      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat', t1:'deadlift', t1scheme:'B', t2:'frontsquat' },
-      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'B', t2:'cgbp'       },
-      { id:'d6', name:'Day 6', label:'Squat Volume Day',        t1:'squat',    t1scheme:'VOL', t2:'sumo', volumeDay:true },
+      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'C', t2:'incline'    },
+      { id:'d4', name:'Day 4', label:'Deadlift / Front Squat', t1:'deadlift', t1scheme:'D', t2:'frontsquat' },
+      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'E', t2:'cgbp'       },
+      { id:'d6', name:'Day 6', label:'Squat Volume Day',        t1:'squat',   t1scheme:'VOL', t2:'sumo', volumeDay:true },
     ]
   },
   '6day-deadlift': {
@@ -266,10 +400,10 @@ const PROGRAMS = {
     days: [
       { id:'d1', name:'Day 1', label:'Bench / OHP',            t1:'bench',    t1scheme:'A', t2:'ohp'        },
       { id:'d2', name:'Day 2', label:'Deadlift / Front Squat', t1:'deadlift', t1scheme:'B', t2:'frontsquat' },
-      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'B', t2:'incline'    },
-      { id:'d4', name:'Day 4', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'B', t2:'sumo'       },
-      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'B', t2:'cgbp'       },
-      { id:'d6', name:'Day 6', label:'Deadlift Volume Day',    t1:'deadlift', t1scheme:'VOL', t2:'frontsquat', volumeDay:true },
+      { id:'d3', name:'Day 3', label:'OHP / Incline Bench',    t1:'ohp',      t1scheme:'C', t2:'incline'    },
+      { id:'d4', name:'Day 4', label:'Squat / Sumo DL',        t1:'squat',    t1scheme:'D', t2:'sumo'       },
+      { id:'d5', name:'Day 5', label:'Bench / CGBP',           t1:'bench',    t1scheme:'E', t2:'cgbp'       },
+      { id:'d6', name:'Day 6', label:'Deadlift Volume Day',    t1:'deadlift', t1scheme:'VOL_S', t2:'frontsquat', volumeDay:true },
     ]
   }
 };
@@ -280,6 +414,9 @@ const LIFT_NAMES = {
 };
 
 const TM_LIFTS = ['bench','squat','deadlift','ohp'];
+
+//T1 Schemes
+// Short Versions drop sets 7 & 9, with increased pct values
 
 // T1 Scheme A — Bench Day 1 (lighter top sets, higher reps)
 const SCHEME_A = [
@@ -294,7 +431,18 @@ const SCHEME_A = [
   {pct:0.65,reps:8, amrap:true},
 ];
 
-// T1 Scheme B — classic 5/3/1 ramp + back-off
+// T1 Scheme A — Short version 
+const SCHEME_A_SHORT = [
+  {pct:0.65,reps:8, amrap:false},
+  {pct:0.75,reps:6, amrap:false},
+  {pct:0.85,reps:4, amrap:false},
+  {pct:0.85,reps:4, amrap:false},
+  {pct:0.85,reps:4, amrap:false},
+  {pct:0.80,reps:6, amrap:false},
+  {pct:0.70,reps:8, amrap:true},
+];
+
+// T1 Scheme B — squat variant
 const SCHEME_B = [
   {pct:0.75,reps:5, amrap:false},
   {pct:0.85,reps:3, amrap:false},
@@ -307,10 +455,107 @@ const SCHEME_B = [
   {pct:0.65,reps:5, amrap:true},
 ];
 
+// T1 Scheme B — Short version 
+const SCHEME_B_SHORT = [
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.95,reps:1, amrap:true},
+  {pct:0.90,reps:3, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+
+  {pct:0.80,reps:5, amrap:false},
+
+  {pct:0.70,reps:5, amrap:true},
+];
+
+// T1 Scheme C — OHP variant
+const SCHEME_C = [
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.95,reps:1, amrap:true},
+  {pct:0.90,reps:3, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.80,reps:3, amrap:false},
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.70,reps:5, amrap:false},
+  {pct:0.65,reps:5, amrap:true},
+];
+
+// T1 Scheme C — OHP Short variant
+const SCHEME_C_SHORT = [
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.95,reps:1, amrap:true},
+  {pct:0.90,reps:3, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+
+  {pct:0.80,reps:5, amrap:false},
+
+  {pct:0.70,reps:5, amrap:true},
+];
+
+// T1 Scheme D — DL variant
+const SCHEME_D = [
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.95,reps:1, amrap:true},
+  {pct:0.90,reps:3, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.80,reps:3, amrap:false},
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.70,reps:5, amrap:false},
+  {pct:0.65,reps:5, amrap:true},
+];
+
+// T1 Scheme D — DL Short variant
+const SCHEME_D_Short = [
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.95,reps:1, amrap:true},
+  {pct:0.90,reps:3, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.80,reps:5, amrap:false},
+  {pct:0.70,reps:5, amrap:true},
+];
+
+// T1 Scheme E — Bench variant
+const SCHEME_E = [
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.95,reps:1, amrap:true},
+  {pct:0.90,reps:3, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.80,reps:3, amrap:false},
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.70,reps:5, amrap:false},
+  {pct:0.65,reps:5, amrap:true},
+];
+
+// T1 Scheme E — Bench Short variant
+const SCHEME_E_SHORT = [
+  {pct:0.75,reps:5, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.95,reps:1, amrap:true},
+  {pct:0.90,reps:3, amrap:false},
+  {pct:0.85,reps:3, amrap:false},
+  {pct:0.80,reps:5, amrap:false},
+  {pct:0.70,reps:5, amrap:true},
+];
+
 // Volume day — 8x3 at 72.5%, last set AMRAP
 const SCHEME_VOL = [
   {pct:0.725,reps:3,amrap:false},
   {pct:0.725,reps:3,amrap:false},
+  {pct:0.725,reps:3,amrap:false},
+  {pct:0.725,reps:3,amrap:false},
+  {pct:0.725,reps:3,amrap:false},
+  {pct:0.725,reps:3,amrap:false},
+  {pct:0.725,reps:3,amrap:false},
+  {pct:0.725,reps:3,amrap:true},
+];
+
+// Volume day — 6x3 at 72.5%, last set AMRAP
+const SCHEME_VOL_SHORT = [
   {pct:0.725,reps:3,amrap:false},
   {pct:0.725,reps:3,amrap:false},
   {pct:0.725,reps:3,amrap:false},
@@ -327,11 +572,41 @@ const T2_CONFIG = {
   cgbp:       { pcts:[0.40,0.50,0.60,0.60,0.60,0.60,0.60,0.60], reps:[6,5,3,5,7,4,6,8], parent:'bench'    },
   frontsquat: { pcts:[0.35,0.45,0.55,0.55,0.55,0.55,0.55,0.55], reps:[5,5,3,5,7,4,6,8], parent:'deadlift' },
 };
+// T2 configs short - drop sets 2 & 8
+const T2_CONFIG_SHORT = {
+  ohp:        { pcts:[0.55,0.70,0.70,0.70,0.70,0.70], reps:[6,3,5,7,4,6], parent:'bench'    },
+  sumo:       { pcts:[0.55,0.70,0.70,0.70,0.70,0.70], reps:[5,3,5,7,4,6], parent:'squat'    },
+  incline:    { pcts:[0.45,0.60,0.60,0.60,0.60,0.60], reps:[6,3,5,7,4,6], parent:'ohp'      },
+  cgbp:       { pcts:[0.45,0.60,0.60,0.60,0.60,0.60], reps:[6,3,5,7,4,6], parent:'bench'    },
+  frontsquat: { pcts:[0.40,0.55,0.55,0.55,0.55,0.55], reps:[5,3,5,7,4,6], parent:'deadlift' },
+};
 
 // T2 configs for volume days (lighter)
 const T2_VOL = {
   sumo:       { pcts:[0.5625,0.5625,0.5625,0.5625,0.5625,0.5625], reps:[3,3,3,3,3,3], parent:'squat'    },
   frontsquat: { pcts:[0.5625,0.5625,0.5625,0.5625,0.5625,0.5625], reps:[3,3,3,3,3,3], parent:'deadlift' },
+};
+
+// Plate definitions: { label, weight, defaultOn }
+const PLATE_OPTIONS = {
+  lbs: [
+    { label: '55', weight: 55, defaultOn: false,  alwaysOn: false  },
+    { label: '45', weight: 45, defaultOn: true,  alwaysOn: true  },
+    { label: '35', weight: 35, defaultOn: false, alwaysOn: false },
+    { label: '25', weight: 25, defaultOn: true,  alwaysOn: true  },
+    { label: '10', weight: 10, defaultOn: true,  alwaysOn: true  },
+    { label: '5',  weight: 5,  defaultOn: true,  alwaysOn: true  },
+    { label: '2.5',weight: 2.5,defaultOn: true,  alwaysOn: false },
+  ],
+  kg: [
+    { label: '25',  weight: 25,  defaultOn: false, alwaysOn: false },
+    { label: '20',  weight: 20,  defaultOn: true,  alwaysOn: true  },
+    { label: '15',  weight: 15,  defaultOn: false, alwaysOn: false },
+    { label: '10',  weight: 10,  defaultOn: true,  alwaysOn: true  },
+    { label: '5',   weight: 5,   defaultOn: true,  alwaysOn: true  },
+    { label: '2.5', weight: 2.5, defaultOn: true,  alwaysOn: false },
+    { label: '1.25',weight: 1.25,defaultOn: false, alwaysOn: false },
+  ]
 };
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
@@ -340,26 +615,94 @@ let state = {
   program: null,
   week: 1,
   unit: 'lbs',
+  darkMode: false,
   tms: { bench: 200, squat: 250, deadlift: 300, ohp: 130 },
   completedDays: {},  // { 'w1': { 'd1': true, ... } }
   workoutLogs: {},    // { 'w1': { 'd1': { 't1-0': { done, reps }, ... } } }
   amrapLogs: {},      // { 'w1': { 'bench': 5, ... } }
+  plates: {
+    lbs: { '55':false, '35': false, '2.5': true },
+    kg:  { '25': false, '15': false, '2.5': true, '1.25': false }
+  }
 };
 
 function weekKey() { return `w${state.week}`; }
 
 function loadState() {
   const saved = localStorage.getItem('nsuns_state_v1');
-  if (saved) { try { state = JSON.parse(saved); } catch(e) {} }
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      state = parsed;
+      // Migrate: ensure plates key exists for older saves
+      if (!state.plates) {
+        state.plates = {
+          lbs: { '55':false, '35': false, '2.5': true },
+          kg:  { '25': false, '15': false, '2.5': true, '1.25': false }
+        };
+      }
+      if (state.darkMode === undefined) state.darkMode = false;
+    } catch(e) {}
+  }
 }
 
 function saveState() {
   localStorage.setItem('nsuns_state_v1', JSON.stringify(state));
 }
 
+// ─── DARK MODE ────────────────────────────────────────────────────────────────
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.darkMode ? 'dark' : 'light');
+  const btn = document.getElementById('dark-toggle-btn');
+  const knob = document.getElementById('dark-knob');
+  if (!btn || !knob) return;
+  btn.style.background = state.darkMode ? '#30d158' : '#e5e5ea';
+  knob.style.left = state.darkMode ? '22px' : '2px';
+}
+
+function toggleDarkMode() {
+  state.darkMode = !state.darkMode;
+  saveState();
+  applyTheme();
+}
+
+// ─── PLATE MATH ───────────────────────────────────────────────────────────────
+
+function getAvailablePlates(unit) {
+  const options = PLATE_OPTIONS[unit];
+  const toggles = state.plates[unit] || {};
+  return options
+    .filter(p => {
+      if (p.alwaysOn) return true;
+      return toggles[p.label] !== undefined ? toggles[p.label] : p.defaultOn;
+    })
+    .map(p => p.weight)
+    .sort((a, b) => b - a);
+}
+
+function plateMath(totalWeight, unit) {
+  const barWeight = unit === 'kg' ? 20 : 45;
+  let perSide = Math.round(((totalWeight - barWeight) / 2) * 100) / 100;
+  if (perSide <= 0) return totalWeight === barWeight ? 'just the bar' : '';
+
+  const plates = getAvailablePlates(unit);
+  const result = [];
+
+  for (const plate of plates) {
+    const count = Math.floor(Math.round(perSide / plate * 1000) / 1000);
+    if (count > 0) {
+      result.push(count > 1 ? `${count}×${plate}` : `${plate}`);
+      perSide = Math.round((perSide - count * plate) * 1000) / 1000;
+    }
+  }
+
+  if (perSide > 0.01) return ''; // can't make exact weight with available plates
+  return result.join(' + ') + ` / side`;
+}
+
 // ─── WEIGHT UTILS ─────────────────────────────────────────────────────────────
 
-// Round to nearest 5 lbs or 2.5 kg
 function roundWeight(w) {
   return state.unit === 'kg' ? Math.round(w / 2.5) * 2.5 : Math.round(w / 5) * 5;
 }
@@ -374,11 +717,19 @@ function fmt(w) {
 
 function getScheme(code) {
   if (code === 'A')   return SCHEME_A;
-  if (code === 'VOL') return SCHEME_VOL;
-  return SCHEME_B;
+  if (code === 'AS')   return SCHEME_A_SHORT;
+  if (code === 'B')   return SCHEME_B;
+  if (code === 'BS')   return SCHEME_B_SHORT;
+  if (code === 'C')   return SCHEME_C;
+  if (code === 'CS')   return SCHEME_C_SHORT;
+  if (code === 'D')   return SCHEME_D;
+  if (code === 'DS')   return SCHEME_D_SHORT;
+  if (code === 'E')   return SCHEME_E;
+  if (code === 'ES')   return SCHEME_E_SHORT;
+  if (code === 'VOL')   return SCHEME_VOL;
+  return SCHEME_VOL_SHORT;
 }
 
-// Return the TM value for a given lift key
 function getTM(liftKey) {
   if (TM_LIFTS.includes(liftKey)) return state.tms[liftKey];
   const cfg = T2_CONFIG[liftKey];
@@ -386,7 +737,6 @@ function getTM(liftKey) {
   return 200;
 }
 
-// Suggest next week's TM based on AMRAP reps achieved
 function suggestNextTM(lift, currentTM, reps) {
   const isLower = (lift === 'squat' || lift === 'deadlift');
   const bigInc   = state.unit === 'kg' ? 5   : 10;
@@ -435,7 +785,7 @@ function renderHome() {
   const pct   = total > 0 ? Math.round(done / total * 100) : 0;
 
   document.getElementById('week-progress').innerHTML = `
-    <div style="display:flex;justify-content:space-between;font-size:13px;color:#6e6e73;margin-bottom:4px">
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-secondary);margin-bottom:4px">
       <span>${done} of ${total} days completed</span><span>${pct}%</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
@@ -451,7 +801,7 @@ function renderHome() {
       <div style="display:flex;align-items:center;gap:8px">
         ${isDone
           ? '<span class="badge badge-green">✓ Done</span>'
-          : '<span style="font-size:13px;color:#8e8e93">Start</span>'}
+          : '<span style="font-size:13px;color:var(--text-tertiary)">Start</span>'}
         <span class="chevron">›</span>
       </div>
     </div>`;
@@ -481,7 +831,7 @@ function renderSetupTM() {
       <div style="text-align:right">
         <input class="tm-input" type="number" id="tminput-${lift}"
           value="${state.tms[lift]}" min="20" step="${state.unit === 'kg' ? 2.5 : 5}" />
-        <div style="font-size:11px;color:#8e8e93;margin-top:2px">${state.unit}</div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">${state.unit}</div>
       </div>
     </div>
   `).join('');
@@ -515,6 +865,14 @@ function getLog(dayId) {
   return state.workoutLogs[wk][dayId];
 }
 
+function weightCell(w) {
+  const pm = plateMath(w, state.unit);
+  return `<div class="set-weight">
+    <span>${fmt(w)} ${state.unit}</span>
+    ${pm ? `<span class="plate-math">${pm}</span>` : ''}
+  </div>`;
+}
+
 function renderWorkout(day) {
   const log      = getLog(day.id);
   const scheme   = getScheme(day.t1scheme);
@@ -537,15 +895,20 @@ function renderWorkout(day) {
     const isDone = !!entry.done;
 
     if (s.amrap) {
-      html += `<div class="set-row amrap-row" style="background:${isDone ? '#d1fae5' : '#fff8e1'}">
+      const hasLogged = entry.reps !== undefined && entry.reps !== null;
+      const displayReps = hasLogged ? entry.reps : s.reps;
+      const valClass = hasLogged ? 'step-val' : 'step-val-default';
+      html += `<div class="set-row amrap-row" style="background:${isDone ? 'var(--amrap-done-bg)' : 'var(--amrap-bg)'}">
         <span class="set-num">${i + 1}</span>
         <span class="set-pct">${Math.round(s.pct * 100)}%</span>
-        <span class="set-weight">${fmt(w)} ${state.unit}</span>
-        <span class="set-reps" style="color:#92400e;font-weight:600">${s.reps}+</span>
+        ${weightCell(w)}
+        <span class="set-reps" style="color:var(--amrap-text);font-weight:600">${s.reps}+</span>
         <div style="display:flex;align-items:center;gap:6px">
-          <input class="amrap-input" type="number" min="0" max="50" placeholder="reps"
-            value="${entry.reps !== undefined && entry.reps !== null ? entry.reps : ''}"
-            oninput="logAmrap('${day.id}','${key}','${day.t1}',this.value)" />
+          <div class="rep-stepper">
+            <button class="step-btn" onclick="stepReps('${day.id}','${key}','${day.t1}',-1,${s.reps})">−</button>
+            <span class="${valClass}">${displayReps}</span>
+            <button class="step-btn" onclick="stepReps('${day.id}','${key}','${day.t1}',1,${s.reps})">+</button>
+          </div>
           <div class="checkbox ${isDone ? 'done' : ''}"
             onclick="toggleSet('${day.id}','${key}')">
             ${isDone ? '✓' : ''}
@@ -556,7 +919,7 @@ function renderWorkout(day) {
       html += `<div class="set-row">
         <span class="set-num">${i + 1}</span>
         <span class="set-pct">${Math.round(s.pct * 100)}%</span>
-        <span class="set-weight">${fmt(w)} ${state.unit}</span>
+        ${weightCell(w)}
         <span class="set-reps">${s.reps}</span>
         <span class="set-check">
           <div class="checkbox ${isDone ? 'done' : ''}" onclick="toggleSet('${day.id}','${key}')">
@@ -589,7 +952,7 @@ function renderWorkout(day) {
       html += `<div class="set-row">
         <span class="set-num">${i + 1}</span>
         <span class="set-pct">${Math.round(pct * 100)}%</span>
-        <span class="set-weight">${fmt(w)} ${state.unit}</span>
+        ${weightCell(w)}
         <span class="set-reps">${t2Cfg.reps[i]}</span>
         <span class="set-check">
           <div class="checkbox ${isDone ? 'done' : ''}" onclick="toggleSet('${day.id}','${key}')">
@@ -622,33 +985,37 @@ function toggleSet(dayId, key) {
   renderWorkout(day);
 }
 
-function logAmrap(dayId, key, liftKey, val) {
-  const log  = getLog(dayId);
+function stepReps(dayId, key, liftKey, delta, defaultReps) {
+  const log = getLog(dayId);
   if (!log[key]) log[key] = {};
-  const reps = parseInt(val);
-  log[key].reps = isNaN(reps) ? null : reps;
-  // Track best AMRAP reps for this lift this week (for new-week suggestions)
-  if (!isNaN(reps) && reps > 0) {
-    const wk = weekKey();
-    if (!state.amrapLogs[wk]) state.amrapLogs[wk] = {};
-    if (reps > (state.amrapLogs[wk][liftKey] || 0)) {
-      state.amrapLogs[wk][liftKey] = reps;
-    }
+  const current = (log[key].reps !== undefined && log[key].reps !== null) ? log[key].reps : defaultReps;
+  const newVal = Math.max(0, current + delta);
+  log[key].reps = newVal;
+  const wk = weekKey();
+  if (!state.amrapLogs[wk]) state.amrapLogs[wk] = {};
+  if (newVal > 0 && newVal > (state.amrapLogs[wk][liftKey] || 0)) {
+    state.amrapLogs[wk][liftKey] = newVal;
   }
   saveState();
+  const day = PROGRAMS[state.program].days.find(d => d.id === dayId);
+  renderWorkout(day);
 }
 
 function finishDay(dayId) {
   const wk = weekKey();
   if (!state.completedDays[wk]) state.completedDays[wk] = {};
   if (state.completedDays[wk][dayId]) {
+    // Undo — stay on workout screen
     delete state.completedDays[wk][dayId];
+    saveState();
+    const day = PROGRAMS[state.program].days.find(d => d.id === dayId);
+    renderWorkout(day);
   } else {
+    // Mark complete and return to home
     state.completedDays[wk][dayId] = true;
+    saveState();
+    showScreen('screen-home');
   }
-  saveState();
-  const day = PROGRAMS[state.program].days.find(d => d.id === dayId);
-  renderWorkout(day);
 }
 
 // ─── NEW WEEK ─────────────────────────────────────────────────────────────────
@@ -664,11 +1031,11 @@ function renderNewWeek() {
     return `<div style="margin-bottom:16px">
       <div class="input-row" style="margin-bottom:4px">
         <div>
-          <div style="font-size:14px;font-weight:500">${LIFT_NAMES[lift]}</div>
-          <div style="font-size:12px;color:#6e6e73">Current: ${fmt(current)} ${state.unit}</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text)">${LIFT_NAMES[lift]}</div>
+          <div style="font-size:12px;color:var(--text-secondary)">Current: ${fmt(current)} ${state.unit}</div>
           ${reps
             ? `<div class="suggestion">AMRAP: ${reps} reps → suggested ${fmt(suggested)} ${state.unit}</div>`
-            : '<div style="font-size:12px;color:#c7c7cc">No AMRAP logged this week</div>'}
+            : '<div style="font-size:12px;color:var(--text-tertiary)">No AMRAP logged this week</div>'}
         </div>
         <input class="tm-input" type="number" id="nwtm-${lift}"
           value="${fmt(suggested !== null ? suggested : current)}"
@@ -694,21 +1061,62 @@ function confirmNewWeek() {
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 
+function togglePlate(unit, label) {
+  if (!state.plates[unit]) state.plates[unit] = {};
+  const opts = PLATE_OPTIONS[unit];
+  const opt = opts.find(p => p.label === label);
+  if (!opt || opt.alwaysOn) return;
+  const current = state.plates[unit][label] !== undefined ? state.plates[unit][label] : opt.defaultOn;
+  state.plates[unit][label] = !current;
+  saveState();
+  renderSettings();
+}
+
 function renderSettings() {
   document.getElementById('s-unit-lbs').classList.toggle('active', state.unit === 'lbs');
   document.getElementById('s-unit-kg').classList.toggle('active',  state.unit === 'kg');
   const prog = state.program ? PROGRAMS[state.program].name : 'None selected';
   document.getElementById('settings-current-program').textContent = `Currently: ${prog}`;
+  applyTheme();
+
+  // Plate toggles
+  const unit = state.unit;
+  const opts = PLATE_OPTIONS[unit];
+  const toggles = state.plates[unit] || {};
+  const platesHtml = opts.map(p => {
+    const isOn = p.alwaysOn || (toggles[p.label] !== undefined ? toggles[p.label] : p.defaultOn);
+    const disabled = p.alwaysOn ? 'style="opacity:0.4;cursor:default"' : '';
+    return `<button class="plate-toggle ${isOn ? 'active' : ''}" ${disabled}
+      onclick="${p.alwaysOn ? '' : `togglePlate('${unit}','${p.label}')`}">
+      ${p.label}
+    </button>`;
+  }).join('');
+
+  document.getElementById('plates-section-title').textContent = `Available plates (${unit})`;
+  document.getElementById('plates-card').innerHTML = `
+    <div class="settings-row" style="border-bottom:none;padding-top:8px;padding-bottom:8px">
+      <div>
+        <div class="settings-label">Plate availability</div>
+        <div class="settings-sub">Grayed = always included</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding-bottom:8px">${platesHtml}</div>
+  `;
 }
 
 function resetApp() {
   if (confirm('Reset all data? This cannot be undone.')) {
     localStorage.removeItem('nsuns_state_v1');
     state = {
-      program: null, week: 1, unit: 'lbs',
+      program: null, week: 1, unit: 'lbs', darkMode: false,
       tms: { bench: 200, squat: 250, deadlift: 300, ohp: 130 },
-      completedDays: {}, workoutLogs: {}, amrapLogs: {}
+      completedDays: {}, workoutLogs: {}, amrapLogs: {},
+      plates: {
+        lbs: { '35': false, '2.5': true },
+        kg:  { '25': false, '15': false, '2.5': true, '1.25': false }
+      }
     };
+    applyTheme();
     showScreen('screen-home');
   }
 }
@@ -716,6 +1124,7 @@ function resetApp() {
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 
 loadState();
+applyTheme();
 setUnit(state.unit);
 renderHome();
 </script>
