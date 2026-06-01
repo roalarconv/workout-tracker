@@ -1,9 +1,5 @@
 <!-- 
  TODO: 
- Complete addition of short versions of workouts
- Add exercise level history to track hitorical TMs
-
- Add an automatic timer that counts your rest time automatically for each set.
 
  Add a way to at minimum list accesory work in a text-based field. 
   - Potentially add as an alternate a drop-down list with write-in reps
@@ -923,6 +919,46 @@ function saveTMs() {
 // ─── WORKOUT ─────────────────────────────────────────────────────────────────
 
 let currentDayId = null;
+let restStarts = {};   // { 'dayId:key': timestamp } — live timers, in-memory only
+let restFrozen = {};   // { 'dayId:key': elapsedMs } — frozen after uncheck, in-memory only
+let timerInterval = null;
+
+function fmtElapsed(startTs) {
+  const s = Math.floor((Date.now() - startTs) / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function fmtMs(ms) {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function startTimerUpdates() {
+  if (timerInterval) return;
+  timerInterval = setInterval(() => {
+    let hasActive = false;
+    Object.keys(restStarts).forEach(k => {
+      const colonIdx = k.indexOf(':');
+      const dayId = k.slice(0, colonIdx);
+      const key   = k.slice(colonIdx + 1);
+      const el = document.getElementById(`rt-${dayId}-${key}`);
+      if (el) { el.textContent = fmtElapsed(restStarts[k]); hasActive = true; }
+    });
+    if (!hasActive) { clearInterval(timerInterval); timerInterval = null; }
+  }, 1000);
+}
+
+function restTimerRight(dayId, key) {
+  const live   = restStarts[`${dayId}:${key}`];
+  const frozen = restFrozen[`${dayId}:${key}`];
+  if (live !== undefined) {
+    return `<span id="rt-${dayId}-${key}" style="font-size:11px;font-weight:600;color:var(--amrap-text);font-variant-numeric:tabular-nums;flex-shrink:0">${fmtElapsed(live)}</span>`;
+  }
+  if (frozen !== undefined) {
+    return `<span style="font-size:11px;font-weight:500;color:var(--text-tertiary);font-variant-numeric:tabular-nums;flex-shrink:0">${fmtMs(frozen)}</span>`;
+  }
+  return '';
+}
 
 function openWorkout(dayId) {
   const day = PROGRAMS[state.program].days.find(d => d.id === dayId);
@@ -930,6 +966,7 @@ function openWorkout(dayId) {
   document.getElementById('workout-title').textContent = `${day.name}: ${day.label}`;
   renderWorkout(day);
   showScreen('screen-workout');
+  startTimerUpdates();
 }
 
 function getLog(dayId) {
@@ -939,19 +976,33 @@ function getLog(dayId) {
   return state.workoutLogs[wk][dayId];
 }
 
-function weightCell(w) {
-  const pm = plateMath(w, state.unit);
-  return `<div class="set-weight">
-    <span>${fmt(w)} ${state.unit}</span>
-    ${pm ? `<span class="plate-math">${pm}</span>` : ''}
+function weightCell(w, dayId, key, showTimer) {
+  const pm    = plateMath(w, state.unit);
+  const timer = showTimer ? restTimerRight(dayId, key) : '';
+  return `<div class="set-weight" ${timer ? 'style="display:flex;align-items:center;gap:6px"' : ''}>
+    <div style="${timer ? 'flex:1' : ''}">
+      <span>${fmt(w)} ${state.unit}</span>
+      ${pm ? `<span class="plate-math">${pm}</span>` : ''}
+    </div>
+    ${timer}
   </div>`;
 }
 
 function renderWorkout(day) {
-  const log      = getLog(day.id);
-  const scheme   = getScheme(day.t1scheme);
-  const t1TM     = getTM(day.t1);
-  const isVol    = !!day.volumeDay;
+  const log     = getLog(day.id);
+  const scheme  = getScheme(day.t1scheme);
+  const t1TM    = getTM(day.t1);
+  const isVol   = !!day.volumeDay;
+  const isShort = !!(PROGRAMS[state.program] && PROGRAMS[state.program].short);
+  const t2Cfg   = isVol ? T2_VOL[day.t2] : (isShort ? T2_CONFIG_SHORT[day.t2] : T2_CONFIG[day.t2]);
+
+  // Pre-compute next key — timers only chain within the same lift section
+  const t1Count = scheme.length;
+  const t2Count = t2Cfg ? t2Cfg.pcts.length : 0;
+  const nextKeyFor = (section, i) => {
+    if (section === 't1') return i < t1Count - 1 ? `t1-${i + 1}` : '';
+    return i < t2Count - 1 ? `t2-${i + 1}` : '';
+  };
 
   // ── T1 ──
   let html = `<div class="lift-section">
@@ -963,19 +1014,20 @@ function renderWorkout(day) {
     <div class="card" style="padding:12px">`;
 
   scheme.forEach((s, i) => {
-    const w      = calcWeight(t1TM, s.pct);
-    const key    = `t1-${i}`;
-    const entry  = log[key] || {};
-    const isDone = !!entry.done;
+    const w       = calcWeight(t1TM, s.pct);
+    const key     = `t1-${i}`;
+    const nextKey = nextKeyFor('t1', i);
+    const entry   = log[key] || {};
+    const isDone  = !!entry.done;
 
     if (s.amrap) {
-      const hasLogged = entry.reps !== undefined && entry.reps !== null;
+      const hasLogged  = entry.reps !== undefined && entry.reps !== null;
       const displayReps = hasLogged ? entry.reps : s.reps;
-      const valClass = hasLogged ? 'step-val' : 'step-val-default';
+      const valClass   = hasLogged ? 'step-val' : 'step-val-default';
       html += `<div class="set-row amrap-row" style="background:${isDone ? 'var(--amrap-done-bg)' : 'var(--amrap-bg)'}">
         <span class="set-num">${i + 1}</span>
         <span class="set-pct">${Math.round(s.pct * 100)}%</span>
-        ${weightCell(w)}
+        ${weightCell(w, day.id, key, i > 0)}
         <span class="set-reps" style="color:var(--amrap-text);font-weight:600">${s.reps}+</span>
         <div style="display:flex;align-items:center;gap:6px">
           <div class="rep-stepper">
@@ -983,8 +1035,7 @@ function renderWorkout(day) {
             <span class="${valClass}">${displayReps}</span>
             <button class="step-btn" onclick="stepReps('${day.id}','${key}','${day.t1}',1,${s.reps})">+</button>
           </div>
-          <div class="checkbox ${isDone ? 'done' : ''}"
-            onclick="toggleSet('${day.id}','${key}')">
+          <div class="checkbox ${isDone ? 'done' : ''}" onclick="toggleSet('${day.id}','${key}','${nextKey}')">
             ${isDone ? '✓' : ''}
           </div>
         </div>
@@ -993,10 +1044,10 @@ function renderWorkout(day) {
       html += `<div class="set-row">
         <span class="set-num">${i + 1}</span>
         <span class="set-pct">${Math.round(s.pct * 100)}%</span>
-        ${weightCell(w)}
+        ${weightCell(w, day.id, key, i > 0)}
         <span class="set-reps">${s.reps}</span>
         <span class="set-check">
-          <div class="checkbox ${isDone ? 'done' : ''}" onclick="toggleSet('${day.id}','${key}')">
+          <div class="checkbox ${isDone ? 'done' : ''}" onclick="toggleSet('${day.id}','${key}','${nextKey}')">
             ${isDone ? '✓' : ''}
           </div>
         </span>
@@ -1007,8 +1058,6 @@ function renderWorkout(day) {
   html += `</div></div>`;
 
   // ── T2 ──
-  const isShort = !!(PROGRAMS[state.program] && PROGRAMS[state.program].short);
-  const t2Cfg = isVol ? T2_VOL[day.t2] : (isShort ? T2_CONFIG_SHORT[day.t2] : T2_CONFIG[day.t2]);
   if (t2Cfg) {
     const t2TM = state.tms[t2Cfg.parent] || 200;
     html += `<div class="lift-section">
@@ -1020,17 +1069,19 @@ function renderWorkout(day) {
       <div class="card" style="padding:12px">`;
 
     t2Cfg.pcts.forEach((pct, i) => {
-      const w      = calcWeight(t2TM, pct);
-      const key    = `t2-${i}`;
-      const entry  = log[key] || {};
-      const isDone = !!entry.done;
+      const w       = calcWeight(t2TM, pct);
+      const key     = `t2-${i}`;
+      const nextKey = nextKeyFor('t2', i);
+      const entry   = log[key] || {};
+      const isDone  = !!entry.done;
+
       html += `<div class="set-row">
         <span class="set-num">${i + 1}</span>
         <span class="set-pct">${Math.round(pct * 100)}%</span>
-        ${weightCell(w)}
+        ${weightCell(w, day.id, key, i > 0)}
         <span class="set-reps">${t2Cfg.reps[i]}</span>
         <span class="set-check">
-          <div class="checkbox ${isDone ? 'done' : ''}" onclick="toggleSet('${day.id}','${key}')">
+          <div class="checkbox ${isDone ? 'done' : ''}" onclick="toggleSet('${day.id}','${key}','${nextKey}')">
             ${isDone ? '✓' : ''}
           </div>
         </span>
@@ -1041,8 +1092,8 @@ function renderWorkout(day) {
   }
 
   // ── Finish button ──
-  const wk         = weekKey();
-  const isComplete  = !!(state.completedDays[wk] && state.completedDays[wk][day.id]);
+  const wk        = weekKey();
+  const isComplete = !!(state.completedDays[wk] && state.completedDays[wk][day.id]);
   html += `<button class="btn ${isComplete ? 'btn-gray' : 'btn-primary'}"
     onclick="finishDay('${day.id}')" style="margin-bottom:32px">
     ${isComplete ? '✓ Completed — tap to undo' : 'Mark day complete'}
@@ -1051,10 +1102,33 @@ function renderWorkout(day) {
   document.getElementById('workout-content').innerHTML = html;
 }
 
-function toggleSet(dayId, key) {
-  const log    = getLog(dayId);
+function toggleSet(dayId, key, nextKey) {
+  const log = getLog(dayId);
   if (!log[key]) log[key] = {};
   log[key].done = !log[key].done;
+
+  if (log[key].done) {
+    // Freeze the rest timer for THIS set (rest period just ended by completing this set)
+    const rs = restStarts[`${dayId}:${key}`];
+    if (rs !== undefined) {
+      restFrozen[`${dayId}:${key}`] = Date.now() - rs;
+      delete restStarts[`${dayId}:${key}`];
+    }
+    // Start live timer for NEXT set
+    if (nextKey) {
+      delete restFrozen[`${dayId}:${nextKey}`];
+      restStarts[`${dayId}:${nextKey}`] = Date.now();
+      startTimerUpdates();
+    }
+  } else {
+    // Uncheck: clear live and frozen timer for next set, and frozen for this set
+    if (nextKey) {
+      delete restStarts[`${dayId}:${nextKey}`];
+      delete restFrozen[`${dayId}:${nextKey}`];
+    }
+    delete restFrozen[`${dayId}:${key}`];
+  }
+
   saveState();
   const day = PROGRAMS[state.program].days.find(d => d.id === dayId);
   renderWorkout(day);
@@ -1130,6 +1204,8 @@ function confirmNewWeek() {
   state.completedDays[wk] = {};
   state.workoutLogs[wk]   = {};
   state.amrapLogs[wk]     = {};
+  restStarts = {};
+  restFrozen = {};
   recordTMHistory();
   saveState();
   showScreen('screen-home');
