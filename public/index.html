@@ -615,19 +615,19 @@ const SCHEME_VOL_SHORT = [
 
 // T2 configs — percentages, reps, and which TM to inherit
 const T2_CONFIG = {
-  ohp:        { pcts:[0.50,0.60,0.70,0.70,0.70,0.70,0.70,0.70], reps:[6,5,3,5,7,4,6,8], parent:'bench'    },
-  sumo:       { pcts:[0.50,0.60,0.70,0.70,0.70,0.70,0.70,0.70], reps:[5,5,3,5,7,4,6,8], parent:'squat'    },
-  incline:    { pcts:[0.40,0.50,0.60,0.60,0.60,0.60,0.60,0.60], reps:[6,5,3,5,7,4,6,8], parent:'ohp'      },
+  ohp:        { pcts:[0.50,0.60,0.70,0.70,0.70,0.70,0.70,0.70], reps:[6,5,3,5,7,4,6,8], parent:'ohp'    },
+  sumo:       { pcts:[0.50,0.60,0.70,0.70,0.70,0.70,0.70,0.70], reps:[5,5,3,5,7,4,6,8], parent:'deadlift'    },
+  incline:    { pcts:[0.40,0.50,0.60,0.60,0.60,0.60,0.60,0.60], reps:[6,5,3,5,7,4,6,8], parent:'bench'      },
   cgbp:       { pcts:[0.40,0.50,0.60,0.60,0.60,0.60,0.60,0.60], reps:[6,5,3,5,7,4,6,8], parent:'bench'    },
-  frontsquat: { pcts:[0.35,0.45,0.55,0.55,0.55,0.55,0.55,0.55], reps:[5,5,3,5,7,4,6,8], parent:'deadlift' },
+  frontsquat: { pcts:[0.35,0.45,0.55,0.55,0.55,0.55,0.55,0.55], reps:[5,5,3,5,7,4,6,8], parent:'squat' },
 };
 // T2 configs short - drop sets 2 & 8
 const T2_CONFIG_SHORT = {
-  ohp:        { pcts:[0.55,0.70,0.70,0.70,0.70,0.70], reps:[6,3,5,7,4,6], parent:'bench'    },
-  sumo:       { pcts:[0.55,0.70,0.70,0.70,0.70,0.70], reps:[5,3,5,7,4,6], parent:'squat'    },
-  incline:    { pcts:[0.45,0.60,0.60,0.60,0.60,0.60], reps:[6,3,5,7,4,6], parent:'ohp'      },
+  ohp:        { pcts:[0.55,0.70,0.70,0.70,0.70,0.70], reps:[6,3,5,7,4,6], parent:'ohp'    },
+  sumo:       { pcts:[0.55,0.70,0.70,0.70,0.70,0.70], reps:[5,3,5,7,4,6], parent:'deadlift'    },
+  incline:    { pcts:[0.45,0.60,0.60,0.60,0.60,0.60], reps:[6,3,5,7,4,6], parent:'bench'      },
   cgbp:       { pcts:[0.45,0.60,0.60,0.60,0.60,0.60], reps:[6,3,5,7,4,6], parent:'bench'    },
-  frontsquat: { pcts:[0.40,0.55,0.55,0.55,0.55,0.55], reps:[5,3,5,7,4,6], parent:'deadlift' },
+  frontsquat: { pcts:[0.40,0.55,0.55,0.55,0.55,0.55], reps:[5,3,5,7,4,6], parent:'squat' },
 };
 
 // T2 configs for volume days (lighter)
