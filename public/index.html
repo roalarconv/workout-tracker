@@ -715,8 +715,13 @@ async function authSubmit() {
 
   let error;
   if (authMode === 'signup') {
-    ({ error } = await sb.auth.signUp({ email, password }));
+    let data;
+    ({ data, error } = await sb.auth.signUp({ email, password }));
     if (!error) {
+      if (data?.session) {
+        // Email confirmation disabled — onAuthStateChange handles navigation
+        return;
+      }
       errEl.style.display = 'block';
       errEl.style.color = 'var(--green-text)';
       errEl.textContent = 'Check your email to confirm your account.';
@@ -1491,7 +1496,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     applyTheme();
     setUnit(state.unit);
     renderHome();
-    showScreen('screen-home');
+    showScreen(state.program ? 'screen-home' : 'screen-choose-program');
   } else {
     showScreen('screen-auth');
   }
