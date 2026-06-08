@@ -735,9 +735,9 @@ async function authSubmit() {
       btn.disabled = false;
       btn.textContent = label;
     } else {
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) { showErr(error.message); return; }
-      if (data?.session?.user) await handleSignedIn(data.session.user.id);
+      // onAuthStateChange fires and calls handleSignedIn — nothing to do here
     }
   } catch (e) {
     showErr(e.message || 'Something went wrong. Check your connection.');
@@ -771,13 +771,11 @@ function syncToSupabase() {
 }
 
 async function loadStateFromSupabase(userId) {
-  const { data, error } = await sb
-    .from('user_state')
-    .select('state')
-    .eq('user_id', userId)
-    .single();
-  if (error || !data) return false;
   try {
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000));
+    const query = sb.from('user_state').select('state').eq('user_id', userId).single();
+    const { data, error } = await Promise.race([query, timeout]);
+    if (error || !data) return false;
     state = data.state;
     if (!state.plates) {
       state.plates = {
@@ -788,8 +786,10 @@ async function loadStateFromSupabase(userId) {
     if (state.darkMode === undefined) state.darkMode = false;
     if (!state.tmHistory) state.tmHistory = {};
     localStorage.setItem('nsuns_state_v1', JSON.stringify(state));
-  } catch(e) {}
-  return true;
+    return true;
+  } catch(e) {
+    return false;
+  }
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
