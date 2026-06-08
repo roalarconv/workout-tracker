@@ -692,6 +692,7 @@ const SUPABASE_URL = 'https://qxdzqcxydsxyxzjvibmv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_5apJtLPK9upcj8hU239qIg_LRFlIhht';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let currentUserId = null;
 let authMode = 'signin';
 
 function toggleAuthMode() {
@@ -709,41 +710,64 @@ async function authSubmit() {
   const password = document.getElementById('auth-password').value;
   const errEl = document.getElementById('auth-error');
   const btn = document.getElementById('auth-btn');
+  const label = authMode === 'signup' ? 'Create Account' : 'Sign In';
+
+  const showErr = (msg) => {
+    errEl.style.display = 'block';
+    errEl.style.color = '#ff3b30';
+    errEl.textContent = msg;
+    btn.disabled = false;
+    btn.textContent = label;
+  };
+
   errEl.style.display = 'none';
   btn.disabled = true;
   btn.textContent = '…';
 
-  let error;
-  if (authMode === 'signup') {
-    let data;
-    ({ data, error } = await sb.auth.signUp({ email, password }));
-    if (!error) {
-      if (data?.session) {
-        // Email confirmation disabled — onAuthStateChange handles navigation
-        return;
-      }
+  try {
+    if (authMode === 'signup') {
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) { showErr(error.message); return; }
+      if (data?.session) return; // confirmation disabled — onAuthStateChange navigates
       errEl.style.display = 'block';
       errEl.style.color = 'var(--green-text)';
       errEl.textContent = 'Check your email to confirm your account.';
       btn.disabled = false;
-      btn.textContent = 'Create Account';
-      return;
+      btn.textContent = label;
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { showErr(error.message); return; }
+      if (data?.session?.user) await handleSignedIn(data.session.user.id);
     }
-  } else {
-    ({ error } = await sb.auth.signInWithPassword({ email, password }));
-  }
-
-  if (error) {
-    errEl.style.display = 'block';
-    errEl.style.color = '#ff3b30';
-    errEl.textContent = error.message;
-    btn.disabled = false;
-    btn.textContent = authMode === 'signup' ? 'Create Account' : 'Sign In';
+  } catch (e) {
+    showErr(e.message || 'Something went wrong. Check your connection.');
   }
 }
 
 async function signOut() {
+  currentUserId = null;
   await sb.auth.signOut();
+}
+
+async function handleSignedIn(userId) {
+  currentUserId = userId;
+  const hadRemote = await loadStateFromSupabase(userId);
+  if (!hadRemote) {
+    // First login — push whatever is in localStorage up to Supabase now
+    syncToSupabase();
+  }
+  applyTheme();
+  setUnit(state.unit);
+  renderHome();
+  showScreen(state.program ? 'screen-home' : 'screen-choose-program');
+}
+
+function syncToSupabase() {
+  if (!currentUserId) return;
+  sb.from('user_state').upsert(
+    { user_id: currentUserId, state: state },
+    { onConflict: 'user_id' }
+  );
 }
 
 async function loadStateFromSupabase(userId) {
@@ -752,7 +776,7 @@ async function loadStateFromSupabase(userId) {
     .select('state')
     .eq('user_id', userId)
     .single();
-  if (error || !data) return;
+  if (error || !data) return false;
   try {
     state = data.state;
     if (!state.plates) {
@@ -765,6 +789,7 @@ async function loadStateFromSupabase(userId) {
     if (!state.tmHistory) state.tmHistory = {};
     localStorage.setItem('nsuns_state_v1', JSON.stringify(state));
   } catch(e) {}
+  return true;
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
@@ -808,13 +833,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem('nsuns_state_v1', JSON.stringify(state));
-  sb.auth.getUser().then(({ data }) => {
-    if (!data?.user) return;
-    sb.from('user_state').upsert(
-      { user_id: data.user.id, state: state },
-      { onConflict: 'user_id' }
-    );
-  });
+  syncToSupabase();
 }
 
 // ─── DARK MODE ────────────────────────────────────────────────────────────────
@@ -1490,14 +1509,15 @@ function renderHistory() {
 loadState();
 applyTheme();
 
-sb.auth.onAuthStateChange(async (event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   if (session?.user) {
-    await loadStateFromSupabase(session.user.id);
-    applyTheme();
-    setUnit(state.unit);
-    renderHome();
-    showScreen(state.program ? 'screen-home' : 'screen-choose-program');
-  } else {
+    handleSignedIn(session.user.id).catch(() => {
+      applyTheme();
+      setUnit(state.unit);
+      renderHome();
+      showScreen(state.program ? 'screen-home' : 'screen-choose-program');
+    });
+  } else if (event === 'SIGNED_OUT') {
     showScreen('screen-auth');
   }
 });
