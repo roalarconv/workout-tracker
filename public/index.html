@@ -737,7 +737,9 @@ async function authSubmit() {
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) { showErr(error.message); return; }
-      // onAuthStateChange fires and calls handleSignedIn — nothing to do here
+      // onAuthStateChange fires and calls handleSignedIn
+      // Fallback: re-enable button after 8s in case the event never fires
+      setTimeout(() => { btn.disabled = false; btn.textContent = label; }, 8000);
     }
   } catch (e) {
     showErr(e.message || 'Something went wrong. Check your connection.');
@@ -752,12 +754,12 @@ async function signOut() {
 async function handleSignedIn(userId) {
   currentUserId = userId;
   const hadRemote = await loadStateFromSupabase(userId);
-  if (!hadRemote) {
-    // First login — push whatever is in localStorage up to Supabase now
+  if (!hadRemote && state.program !== null) {
+    // First login with real local data — push it up to Supabase
     syncToSupabase();
   }
   applyTheme();
-  setUnit(state.unit);
+  setUnit(state.unit, false);
   renderHome();
   showScreen(state.program ? 'screen-home' : 'screen-choose-program');
 }
@@ -962,11 +964,11 @@ function showScreen(id) {
   if (id === 'screen-history')  renderHistory();
 }
 
-function setUnit(u) {
+function setUnit(u, save = true) {
   state.unit = u;
   document.getElementById('unit-lbs').classList.toggle('active', u === 'lbs');
   document.getElementById('unit-kg').classList.toggle('active',  u === 'kg');
-  saveState();
+  if (save) saveState();
 }
 
 // ─── HOME ────────────────────────────────────────────────────────────────────
