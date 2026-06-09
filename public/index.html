@@ -354,6 +354,7 @@ Add an AI-generated summary when completing a week (or workout) that uses your p
     <div class="card" id="plates-card"></div>
 
     <div style="margin-top:8px">
+      <div id="sync-status" style="font-size:13px;text-align:center;min-height:18px;margin-bottom:8px"></div>
       <button class="btn btn-danger" onclick="resetApp()">Reset all data</button>
       <button class="btn" onclick="signOut()" style="margin-top:8px;width:100%">Sign Out</button>
     </div>
@@ -764,12 +765,22 @@ async function handleSignedIn(userId) {
   showScreen(state.program ? 'screen-home' : 'screen-choose-program');
 }
 
-function syncToSupabase() {
+async function syncToSupabase() {
   if (!currentUserId) return;
-  sb.from('user_state').upsert(
+  const { error } = await sb.from('user_state').upsert(
     { user_id: currentUserId, state: state },
     { onConflict: 'user_id' }
   );
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (error) {
+    el.textContent = 'Sync failed: ' + error.message;
+    el.style.color = '#ff3b30';
+  } else {
+    el.textContent = 'Synced ✓';
+    el.style.color = 'var(--green-text)';
+    setTimeout(() => { if (el) el.textContent = ''; }, 3000);
+  }
 }
 
 async function loadStateFromSupabase(userId) {
