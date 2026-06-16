@@ -1394,8 +1394,8 @@ async function fetchWeeklySummary(weekData) {
       },
       body: JSON.stringify({ weekData })
     });
-    const { summary, error } = await res.json();
-    summaryEl.textContent = error ? 'Could not generate summary.' : summary;
+    const data = await res.json();
+    summaryEl.textContent = data.summary || data.error || 'Could not generate summary.';
   } catch (e) {
     summaryEl.textContent = 'Could not reach AI — check your connection.';
   }
